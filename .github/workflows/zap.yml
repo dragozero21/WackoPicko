@@ -1,0 +1,31 @@
+name: ZAP-Test
+
+on:
+  push: 
+    branches: [ master ]
+
+jobs: 
+  build: 
+    runs-on: ubuntu-latest
+    steps:
+      - name: IP
+        run: hostname -I
+      - uses: actions/checkout@v2
+      - name: Build Image
+        run: docker-compose build && docker-compose up
+      - name: ZAP build
+        run: docker pull ictu/zap2docker-weekly
+      - name: ZAP Scan
+        run: |
+            docker run --rm -v /tmp:/zap/wrk -t ictu/zap2docker-weekly zap-full-scan.py -I -j -m 10 -T 60 \
+              -t http://172.17.0.1:8080 \
+              -r testreport.html \
+              --hook=/zap/auth_hook.py \
+              -z "auth.loginurl=http://172.17.0.1:8080/users/login.php \
+                  auth.username="scanner1" \
+                  auth.password="scanner1""
+            echo "SUSKES"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: /tmp/testreport.html
